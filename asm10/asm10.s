@@ -1,6 +1,6 @@
-﻿; asm10.s — Maximum of three numbers
-; Usage: ./asm10 A B C  -> print max(A,B,C) and exit 0
-; If not enough args -> exit 1
+﻿; asm10.s — Maximum of three numbers (signed)
+; Usage: ./asm10 A B C  -> prints max(A,B,C) and exits 0
+; Not enough args -> exit 1
 
 section .bss
 buf:    resb 32
@@ -11,22 +11,27 @@ nl:     db 10
 section .text
 global _start
 
-; atoi signé
-; IN:  rsi -> string
-; OUT: rax = int64
+; ---------- signed atoi ----------
+; IN : rsi -> C-string (optional leading '+' or '-')
+; OUT: rax = int64 value
+; Clobbers: rax, rbx, rcx, rdx, rsi
+; Preserves: rbx (callee-saved)
 atoi:
+    push    rbx
     xor     rax, rax
-    mov     r9d, +1            ; signe
+    mov     ecx, +1              ; sign = +1
+
     mov     bl, [rsi]
     cmp     bl, '-'
     jne     .check_plus
-    mov     r9d, -1
+    mov     ecx, -1
     inc     rsi
     jmp     .parse
 .check_plus:
     cmp     bl, '+'
     jne     .parse
     inc     rsi
+
 .parse:
     mov     bl, [rsi]
     cmp     bl, 0
@@ -40,34 +45,44 @@ atoi:
     add     rax, rbx
     inc     rsi
     jmp     .parse
+
 .end:
-    cmp     r9d, -1
+    cmp     ecx, -1
     jne     .ret
     neg     rax
 .ret:
+    pop     rbx
     ret
 
-; itoa signé
-; IN:  rax = int64
-; OUT: rsi -> string, rcx = len
+; ---------- signed itoa ----------
+; IN : rax = int64 value
+; OUT: rsi -> string, rcx = length
+; Clobbers: rax, rbx, rcx, rdx, rdi
+; Preserves: rbx (callee-saved)
 itoa:
+    push    rbx
     mov     rbx, 10
     mov     rcx, 0
     mov     rdi, buf+31
     mov     byte [rdi], 0
+
+    ; zero ?
     test    rax, rax
     jnz     .check_neg
     dec     rdi
     mov     byte [rdi], '0'
     mov     rcx, 1
     mov     rsi, rdi
+    pop     rbx
     ret
+
 .check_neg:
     mov     r8b, 0
     test    rax, rax
     jge     .conv
     neg     rax
     mov     r8b, 1
+
 .conv:
     xor     rdx, rdx
     div     rbx
@@ -77,66 +92,68 @@ itoa:
     inc     rcx
     test    rax, rax
     jnz     .conv
+
     cmp     r8b, 1
     jne     .done
     dec     rdi
     mov     byte [rdi], '-'
     inc     rcx
+
 .done:
     mov     rsi, rdi
+    pop     rbx
     ret
 
-; main
+; ---------- main ----------
 _start:
-    mov     rax, [rsp]          ; argc
-    cmp     rax, 4              ; prog + 3 args
+    mov     rax, [rsp]            ; argc
+    cmp     rax, 4                ; need program + 3 args
     jl      exit1
 
-    ; argv[1] -> r8
+    ; argv[1] -> r12
     mov     rsi, [rsp+16]
     call    atoi
-    mov     r8, rax
+    mov     r12, rax
 
-    ; argv[2] -> r9
+    ; argv[2] -> r13
     mov     rsi, [rsp+24]
     call    atoi
-    mov     r9, rax
+    mov     r13, rax
 
-    ; argv[3] -> r10
+    ; argv[3] -> r14
     mov     rsi, [rsp+32]
     call    atoi
-    mov     r10, rax
+    mov     r14, rax
 
-    ; max(r8, r9, r10) -> rax
-    mov     rax, r8
-    cmp     r9, rax
-    jle     .skip1
-    mov     rax, r9
-.skip1:
-    cmp     r10, rax
-    jle     .have_max
-    mov     rax, r10
-.have_max:
+    ; max signed: rax = max(r12, r13, r14)
+    mov     rax, r12
+    mov     rdx, r13
+    cmp     rdx, rax
+    cmovg   rax, rdx              ; if r13 > rax -> rax = r13
 
-    ; print max with newline
-    call    itoa                ; rsi, rcx
-    mov     rdx, rcx
-    mov     rax, 1              ; write(1, buf, len)
+    mov     rdx, r14
+    cmp     rdx, rax
+    cmovg   rax, rdx              ; if r14 > rax -> rax = r14
+
+    ; print result + newline
+    call    itoa                  ; rsi, rcx set
+    mov     rax, 1                ; write(1, buf, len)
     mov     rdi, 1
+    mov     rdx, rcx
     syscall
 
-    mov     rax, 1              ; write(1, "\n", 1)
+    mov     rax, 1                ; write(1, "\n", 1)
     mov     rdi, 1
     mov     rsi, nl
     mov     rdx, 1
     syscall
 
 exit0:
-    mov     rax, 60             ; exit(0)
+    mov     rax, 60               ; exit(0)
     xor     rdi, rdi
     syscall
 
 exit1:
-    mov     rax, 60             ; exit(1) if not enough args
+    mov     rax, 60               ; exit(1)
     mov     rdi, 1
     syscall
