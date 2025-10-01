@@ -1,10 +1,9 @@
-﻿; asm11.s — Count vowels in string from stdin
-; Usage: echo "assemblage" | ./asm11
-; Output: 4
+﻿; asm11.s — Count vowels in string from stdin (a,e,i,o,u,y + A,E,I,O,U,Y)
+; Output: number + '\n', exit 0
 
 section .bss
-buf:    resb 256          ; buffer input
-outbuf: resb 32           ; pour itoa
+buf:    resb 256          ; input buffer
+outbuf: resb 32           ; for itoa
 
 section .data
 nl:     db 10
@@ -13,7 +12,7 @@ section .text
 global _start
 
 ; itoa unsigned
-; IN:  rax = int
+; IN:  rax = non-negative integer
 ; OUT: rsi = ptr, rcx = len
 itoa:
     mov     rbx, 10
@@ -47,34 +46,35 @@ _start:
     mov     rsi, buf
     mov     rdx, 256
     syscall
-    cmp     rax, 0
-    jle     exit1             ; pas d’entrée
+    ; rax = bytes read (peut être 0 si EOF)
 
-    mov     rcx, rax          ; nombre d’octets lus
+    mov     rcx, rax          ; length
     mov     rsi, buf
-    xor     rbx, rbx          ; compteur voyelles
+    xor     rbx, rbx          ; vowel counter
 
 .nextchar:
     cmp     rcx, 0
     je      .done
     mov     al, [rsi]
 
-    cmp     al, 10            ; ignorer '\n'
+    cmp     al, 10            ; ignore '\n'
     je      .skip
 
-    ; check voyelles min
-    cmp     al, 'a'
+    ; vowels lowercase
+    cmp     al, 'a'  ; a
     je      .inc
-    cmp     al, 'e'
+    cmp     al, 'e'  ; e
     je      .inc
-    cmp     al, 'i'
+    cmp     al, 'i'  ; i
     je      .inc
-    cmp     al, 'o'
+    cmp     al, 'o'  ; o
     je      .inc
-    cmp     al, 'u'
+    cmp     al, 'u'  ; u
+    je      .inc
+    cmp     al, 'y'  ; y
     je      .inc
 
-    ; check voyelles maj
+    ; vowels uppercase
     cmp     al, 'A'
     je      .inc
     cmp     al, 'E'
@@ -84,6 +84,8 @@ _start:
     cmp     al, 'O'
     je      .inc
     cmp     al, 'U'
+    je      .inc
+    cmp     al, 'Y'
     je      .inc
 
     jmp     .skip
@@ -100,7 +102,7 @@ _start:
     mov     rax, rbx
     call    itoa
 
-    ; write(1, rsi, rcx)
+    ; write(1, result, len)
     mov     rax, 1
     mov     rdi, 1
     mov     rdx, rcx
@@ -113,12 +115,7 @@ _start:
     mov     rdx, 1
     syscall
 
-exit0:
+    ; exit(0)
     mov     rax, 60
     xor     rdi, rdi
-    syscall
-
-exit1:
-    mov     rax, 60
-    mov     rdi, 1
     syscall
