@@ -1,19 +1,20 @@
-﻿; asm11.s — Count vowels in string from stdin (a,e,i,o,u,y + A,E,I,O,U,Y)
-; Output: number + '\n', exit 0
+﻿; asm11.s — Count vowels in stdin (a,e,i,o,u,y + A,E,I,O,U,Y)
+; Prints the count + '\n' and exits 0
 
 section .bss
-buf:    resb 256          ; input buffer
-outbuf: resb 32           ; for itoa
+inbuf:   resb 512
+outbuf:  resb 32
 
 section .data
-nl:     db 10
+vowels:  db "aeiouyAEIOUY", 0
+nl:      db 10
 
 section .text
 global _start
 
 ; itoa unsigned
-; IN:  rax = non-negative integer
-; OUT: rsi = ptr, rcx = len
+; IN : rax = non-negative integer
+; OUT: rsi -> string, rcx = length
 itoa:
     mov     rbx, 10
     mov     rcx, 0
@@ -40,67 +41,48 @@ itoa:
 
 ; main
 _start:
-    ; read(0, buf, 256)
+    ; read(0, inbuf, 512)
     mov     rax, 0
     mov     rdi, 0
-    mov     rsi, buf
-    mov     rdx, 256
+    mov     rsi, inbuf
+    mov     rdx, 512
     syscall
     ; rax = bytes read (peut être 0 si EOF)
+    mov     rcx, rax           ; compteur de bytes restants à traiter
+    mov     rsi, inbuf
+    xor     rbx, rbx           ; rbx = compteur de voyelles
 
-    mov     rcx, rax          ; length
-    mov     rsi, buf
-    xor     rbx, rbx          ; vowel counter
-
-.nextchar:
+.next_char:
     cmp     rcx, 0
     je      .done
     mov     al, [rsi]
 
-    cmp     al, 10            ; ignore '\n'
-    je      .skip
+    ; ignorer le LF (echo ajoute un '\n')
+    cmp     al, 10
+    je      .advance
 
-    ; vowels lowercase
-    cmp     al, 'a'  ; a
-    je      .inc
-    cmp     al, 'e'  ; e
-    je      .inc
-    cmp     al, 'i'  ; i
-    je      .inc
-    cmp     al, 'o'  ; o
-    je      .inc
-    cmp     al, 'u'  ; u
-    je      .inc
-    cmp     al, 'y'  ; y
-    je      .inc
+    ; tester l'appartenance à "aeiouyAEIOUY"
+    mov     rdi, vowels
+.chk_loop:
+    mov     dl, [rdi]
+    test    dl, dl
+    je      .advance           ; fin de la table -> pas voyelle
+    cmp     al, dl
+    je      .is_vowel
+    inc     rdi
+    jmp     .chk_loop
 
-    ; vowels uppercase
-    cmp     al, 'A'
-    je      .inc
-    cmp     al, 'E'
-    je      .inc
-    cmp     al, 'I'
-    je      .inc
-    cmp     al, 'O'
-    je      .inc
-    cmp     al, 'U'
-    je      .inc
-    cmp     al, 'Y'
-    je      .inc
-
-    jmp     .skip
-
-.inc:
+.is_vowel:
     inc     rbx
 
-.skip:
+.advance:
     inc     rsi
     dec     rcx
-    jmp     .nextchar
+    jmp     .next_char
 
 .done:
     mov     rax, rbx
-    call    itoa
+    call    itoa               ; rsi, rcx = string du nombre
 
     ; write(1, result, len)
     mov     rax, 1
@@ -108,7 +90,7 @@ _start:
     mov     rdx, rcx
     syscall
 
-    ; newline
+    ; write(1, "\n", 1)
     mov     rax, 1
     mov     rdi, 1
     mov     rsi, nl
