@@ -1,17 +1,25 @@
-﻿section .bss
+﻿; asm17.s — Caesar cipher (x86_64 Linux, NASM)
+; Usage:
+;   echo "hello"        | ./asm17 3    -> khoor
+;   echo 'Hello, World!'| ./asm17 5    -> Mjqqt, Btwqi!
+;   echo "abcXYZ"       | ./asm17 -2   -> yzaVWX
+
+section .bss
 inbuf:  resb 1024
 outbuf: resb 1024
 
 section .data
-nl: db 10
+nl:     db 10
 
 section .text
 global _start
 
-; ---- atoi signé ----
+; -------- atoi signé (32-bit) --------
+; IN : rsi -> c-string
+; OUT: eax = int32 (signed)
 atoi_signed32:
-    xor     eax, eax
-    mov     edi, +1
+    xor     eax, eax           ; result
+    mov     edi, +1            ; sign
     mov     dl, [rsi]
     cmp     dl, '-'
     jne     .chk_plus
@@ -42,84 +50,109 @@ atoi_signed32:
     ret
 
 _start:
-    ; argc check
-    mov     rax, [rsp]
+    ; ----- vérifier argc -----
+    mov     rax, [rsp]         ; argc
     cmp     rax, 2
-    jl      .exit1
+    jl      .exit1             ; besoin d'un décalage en argument
 
-    ; argv[1] = shift
-    mov     rsi, [rsp+16]
-    call    atoi_signed32   ; eax = shift
+    ; ----- lire le décalage -----
+    mov     rsi, [rsp+16]      ; argv[1]
+    call    atoi_signed32      ; EAX = shift (signé)
 
-    ; normalize shift = (shift % 26 + 26) % 26
+    ; normaliser: (shift % 26 + 26) % 26  -> BL (0..25)
     mov     ecx, 26
-    cdq
-    idiv    ecx             ; eax/26
-    mov     eax, edx        ; remainder
+    cdq                         ; EDX:EAX pour idiv signé
+    idiv    ecx                 ; EDX = reste signé
+    mov     eax, edx            ; EAX = reste
     add     eax, 26
     cdq
     idiv    ecx
-    mov     ecx, edx        ; ecx = final shift (0..25)
+    mov     ebx, edx            ; EBX = shift final (0..25)
+    mov     bl, bl              ; on utilisera BL
 
-    ; read stdin
-    mov     rax, 0
+    ; ----- lire stdin -----
+    mov     rax, 0              ; SYS_read
     mov     rdi, 0
     mov     rsi, inbuf
     mov     rdx, 1024
     syscall
-    mov     r8, rax         ; len
+    cmp     rax, 0
+    jle     .print_nl_exit
+    mov     r8, rax             ; r8 = octets lus
 
+    ; déterminer la longueur utile L (arrêt sur '\n' s'il existe)
+    xor     r9, r9              ; r9 = L
+    mov     rcx, r8
+    mov     rsi, inbuf
+.len_scan:
+    cmp     rcx, 0
+    je      .have_len
+    mov     al, [rsi]
+    cmp     al, 10              ; '\n'
+    je      .have_len
+    inc     r9
+    inc     rsi
+    dec     rcx
+    jmp     .len_scan
+.have_len:
+    test    r9, r9
+    jz      .print_nl_exit
+
+    ; ----- chiffrer -----
     mov     rsi, inbuf
     mov     rdi, outbuf
-    mov     rcx, r8
-.loop:
-    cmp     rcx, 0
-    je      .done_enc
-    movzx   eax, byte [rsi]
+    mov     rcx, r9             ; compteur de caractères
+.enc_loop:
+    mov     al, [rsi]
 
-    ; 'a'..'z'
+    ; minuscules 'a'..'z'
     cmp     al, 'a'
-    jb      .chk_upper
+    jb      .check_upper
     cmp     al, 'z'
-    ja      .chk_upper
-    sub     al, 'a'
-    add     eax, ecx
-    cdq
-    idiv    dword [rel const26]
-    mov     eax, edx
+    ja      .check_upper
+    sub     al, 'a'             ; 0..25
+    add     al, bl              ; + shift
+    cmp     al, 26
+    jb      .lower_ok
+    sub     al, 26
+.lower_ok:
     add     al, 'a'
-    jmp     .store
-
-.chk_upper:
-    cmp     al, 'A'
-    jb      .other
-    cmp     al, 'Z'
-    ja      .other
-    sub     al, 'A'
-    add     eax, ecx
-    cdq
-    idiv    dword [rel const26]
-    mov     eax, edx
-    add     al, 'A'
-    jmp     .store
-
-.other:
-    ; keep char
-.store:
     mov     [rdi], al
+    jmp     .advance
+
+.check_upper:
+    ; majuscules 'A'..'Z'
+    cmp     al, 'A'
+    jb      .store_other
+    cmp     al, 'Z'
+    ja      .store_other
+    sub     al, 'A'
+    add     al, bl
+    cmp     al, 26
+    jb      .upper_ok
+    sub     al, 26
+.upper_ok:
+    add     al, 'A'
+    mov     [rdi], al
+    jmp     .advance
+
+.store_other:
+    mov     [rdi], al           ; ponctuation/espace inchangé
+
+.advance:
     inc     rsi
     inc     rdi
     dec     rcx
-    jmp     .loop
+    jnz     .enc_loop
 
-.done_enc:
-    ; write outbuf
-    mov     rax, 1
+    ; write(outbuf, L)
+    mov     rax, 1              ; SYS_write
     mov     rdi, 1
     mov     rsi, outbuf
-    mov     rdx, r8
+    mov     rdx, r9
     syscall
 
+.print_nl_exit:
     ; newline
     mov     rax, 1
     mov     rdi, 1
@@ -127,7 +160,7 @@ _start:
     mov     rdx, 1
     syscall
 
-    ; exit 0
+    ; exit(0)
     mov     rax, 60
     xor     rdi, rdi
     syscall
@@ -136,6 +169,3 @@ _start:
     mov     rax, 60
     mov     rdi, 1
     syscall
-
-section .data
-const26: dd 26
