@@ -1,6 +1,4 @@
-﻿;; fichier asm03.s
-
-; asm03.s — Vérifier argv[1] == "42", afficher 1337 si égal
+﻿;; asm03.s — print 1337 if and only if there is exactly ONE arg and it's "42"
 
 section .data
 msg:    db "1337", 10
@@ -10,30 +8,28 @@ section .text
 global _start
 
 _start:
-    ; RSP -> argc (qword), argv[0] pointer, argv[1] pointer ...
+    ; argc must be exactly 2 (program + 1 arg)
     mov     rax, [rsp]        ; argc
     cmp     rax, 2
-    jl      not_equal         ; si argc < 2 -> exit 1
+    jne     not_equal         ; != 2 -> exit 1
 
-    mov     rbx, [rsp + 16]   ; argv[1] pointer
+    mov     rbx, [rsp + 16]   ; argv[1]
 
-    ; comparer argv[1][0] == '4'
+    ; argv[1] must be exactly "42"
     mov     al, [rbx]
     cmp     al, '4'
     jne     not_equal
 
-    ; comparer argv[1][1] == '2'
     mov     al, [rbx + 1]
     cmp     al, '2'
     jne     not_equal
 
-    ; argv[1][2] == 0 (fin de chaîne)
     mov     al, [rbx + 2]
     cmp     al, 0
     jne     not_equal
 
-    ; égal -> write(1, msg, mlen)
-    mov     rax, 1
+    ; match -> print 1337\n
+    mov     rax, 1            ; write
     mov     rdi, 1
     mov     rsi, msg
     mov     rdx, mlen
@@ -45,7 +41,6 @@ _start:
     syscall
 
 not_equal:
-    ; exit(1)
-    mov     rax, 60
+    mov     rax, 60           ; exit(1)
     mov     rdi, 1
     syscall
