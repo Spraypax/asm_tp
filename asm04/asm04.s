@@ -1,4 +1,4 @@
-﻿; asm04.s — lire un entier sur stdin
+; asm04.s — lire un entier sur stdin
 ; exit 0 si pair, 1 si impair, 2 si entrée invalide
 ; bornage: magnitude <= INT_MAX (2147483647)
 

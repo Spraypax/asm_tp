@@ -1,4 +1,4 @@
-﻿; asm15.s — ELF x64 binary detection
+; asm15.s — ELF x64 binary detection
 ; Exit 0 if file is ELF x86-64, else exit 1
 
 section .bss

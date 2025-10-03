@@ -1,4 +1,4 @@
-﻿; asm12.s — Reverse string from stdin
+; asm12.s — Reverse string from stdin
 ; Example: echo "Bonjour" | ./asm12  -> ruojnoB
 
 section .bss

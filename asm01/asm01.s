@@ -1,4 +1,4 @@
-﻿;; fichier asm01.s
+;; fichier asm01.s
 
 ; asm01.s — Afficher "1337" puis exit(0) en x86_64 Linux
 

@@ -1,1 +1,1 @@
-﻿;; fichier asm20.s
+;; fichier asm20.s

@@ -1,1 +1,1 @@
-﻿;; fichier asm18.s
+;; fichier asm18.s

@@ -1,1 +1,1 @@
-﻿;; fichier asm22.s
+;; fichier asm22.s

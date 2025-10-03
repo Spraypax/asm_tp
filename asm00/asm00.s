@@ -1,4 +1,4 @@
-﻿;; fichier asm00.s
+;; fichier asm00.s
 
 section .text
 global _start

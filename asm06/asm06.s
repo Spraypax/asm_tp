@@ -1,4 +1,4 @@
-﻿; asm06.s — additionner deux nombres signés (argv[1] + argv[2])
+; asm06.s — additionner deux nombres signés (argv[1] + argv[2])
 ; Affiche le résultat + '\n', exit(0)
 ; Erreurs :
 ;   - pas exactement 2 paramètres -> exit(1)

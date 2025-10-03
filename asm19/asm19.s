@@ -1,1 +1,1 @@
-﻿;; fichier asm19.s
+;; fichier asm19.s

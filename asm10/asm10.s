@@ -1,4 +1,4 @@
-﻿; asm10.s — Maximum of three numbers (signed)
+; asm10.s — Maximum of three numbers (signed)
 ; Usage: ./asm10 A B C  -> prints max(A,B,C) and exits 0
 ; Not enough args -> exit 1
 

@@ -1,4 +1,4 @@
-﻿; asm09.s — Convert decimal to hex or binary
+; asm09.s — Convert decimal to hex or binary
 ; Usage:
 ;   ./asm09 N        -> affiche en HEX
 ;   ./asm09 -b N     -> affiche en BINAIRE

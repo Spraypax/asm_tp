@@ -1,4 +1,4 @@
-﻿;; fichier asm02.s
+;; fichier asm02.s
 
 ; asm02.s — Lire stdin, comparer avec "42", afficher "1337" si égal
 

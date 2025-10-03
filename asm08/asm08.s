@@ -1,4 +1,4 @@
-﻿; asm08.s — Sum of integers below N
+; asm08.s — Sum of integers below N
 ; Usage: ./asm08 N
 ; Exemple: ./asm08 5 -> affiche 10 (1+2+3+4)
 

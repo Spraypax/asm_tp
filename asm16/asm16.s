@@ -1,4 +1,4 @@
-﻿; asm16.s — Patch "1337" -> "H4CK" in a given file
+; asm16.s — Patch "1337" -> "H4CK" in a given file
 ; Usage:
 ;   ./asm16 asm01
 ;   ./asm01   # should now print H4CK

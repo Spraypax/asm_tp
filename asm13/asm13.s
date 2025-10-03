@@ -1,4 +1,4 @@
-﻿; asm13.s — Palindrome detection from stdin
+; asm13.s — Palindrome detection from stdin
 section .bss
     buffer  resb 256
 

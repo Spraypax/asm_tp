@@ -1,4 +1,4 @@
-﻿; asm07.s — Prime test from stdin
+; asm07.s — Prime test from stdin
 ; exit 0 = prime
 ; exit 1 = non-prime (inclut nombres négatifs)
 ; exit 2 = bad input

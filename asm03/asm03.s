@@ -1,4 +1,4 @@
-﻿;; asm03.s — print 1337 if and only if there is exactly ONE arg and it's "42"
+;; asm03.s — print 1337 if and only if there is exactly ONE arg and it's "42"
 
 section .data
 msg:    db "1337", 10

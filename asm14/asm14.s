@@ -1,4 +1,4 @@
-﻿; asm14.s — write "Hello Universe!\n" to file given as argv[1]
+; asm14.s — write "Hello Universe!\n" to file given as argv[1]
 ; Usage:
 ;   ./asm14 output.txt
 ;   cat output.txt  -> Hello Universe!

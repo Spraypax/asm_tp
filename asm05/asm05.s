@@ -1,4 +1,4 @@
-﻿; asm05.s — print argv[1] + newline
+; asm05.s — print argv[1] + newline
 ; exit(0) if printed
 ; exit(1) if no argument
 

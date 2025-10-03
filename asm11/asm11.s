@@ -1,4 +1,4 @@
-﻿; asm11.s — Count vowels from stdin
+; asm11.s — Count vowels from stdin
 ; - ASCII vowels: aeiouyAEIOUY
 ; - UTF-8 latin-1 vowels (C3 xx) such as é, à, ö, Ä, Ü, … are also counted
 ; Prints the count + '\n', exit 0

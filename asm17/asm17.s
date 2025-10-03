@@ -1,4 +1,4 @@
-﻿; asm17.s — Caesar cipher (x86_64 Linux, NASM)
+; asm17.s — Caesar cipher (x86_64 Linux, NASM)
 ; Usage:
 ;   echo "hello"        | ./asm17 3    -> khoor
 ;   echo 'Hello, World!'| ./asm17 5    -> Mjqqt, Btwqi!
