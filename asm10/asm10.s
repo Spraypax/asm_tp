@@ -108,7 +108,7 @@ itoa:
 _start:
     mov     rax, [rsp]            ; argc
     cmp     rax, 4                ; need program + 3 args
-    jl      exit1
+    jne      exit1
 
     ; argv[1] -> r12
     mov     rsi, [rsp+16]
