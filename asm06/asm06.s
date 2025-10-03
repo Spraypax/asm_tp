@@ -1,8 +1,11 @@
-﻿; asm06.s — additionner deux nombres (signés) en arguments et afficher le résultat
-; OK pour: positifs, négatifs, zéro, et "no params" -> exit 1
+﻿; asm06.s — additionner deux nombres signés (argv[1] + argv[2])
+; Affiche le résultat + '\n', exit(0)
+; Erreurs :
+;   - pas exactement 2 paramètres -> exit(1)
+;   - paramètre non numérique (entier non strict) -> exit(1)
 
 section .bss
-buf:    resb 32              ; buffer pour itoa
+buf:    resb 32
 
 section .data
 nl:     db 10
@@ -10,59 +13,71 @@ nl:     db 10
 section .text
 global _start
 
-
-; atoi signé
-; IN : rsi -> string (argv[i])
+; ---------------- atoi signé strict ----------------
+; IN : rsi -> string
 ; OUT: rax = int64
-
+;      r11 = 1 si valide, 0 sinon (au moins un chiffre, fin strict '\0')
 atoi:
-    xor     rax, rax            ; résultat
-    mov     r9d, +1             ; signe = +1
+    xor     rax, rax
+    mov     r11, 1               ; valid = 1 par défaut
+    mov     r9d, +1              ; sign = +1
+
     mov     bl, [rsi]
-    cmp     bl, '-'             ; signe négatif ?
+    cmp     bl, '-'
     jne     .check_plus
     mov     r9d, -1
     inc     rsi
-    jmp     .parse
+    jmp     .check_first_digit
 .check_plus:
     cmp     bl, '+'
-    jne     .parse
+    jne     .check_first_digit
     inc     rsi
 
+.check_first_digit:
+    ; doit commencer par un chiffre
+    mov     bl, [rsi]
+    cmp     bl, '0'
+    jb      .invalid
+    cmp     bl, '9'
+    ja      .invalid
+
+    ; au moins un chiffre -> boucle
 .parse:
     mov     bl, [rsi]
     cmp     bl, 0
-    je      .end
+    je      .end_strict
     cmp     bl, '0'
-    jb      .end
+    jb      .invalid
     cmp     bl, '9'
-    ja      .end
+    ja      .invalid
     imul    rax, rax, 10
     sub     bl, '0'
     add     rax, rbx
     inc     rsi
     jmp     .parse
 
-.end:
-    ; appliquer le signe
+.end_strict:
+    ; appliquer signe
     cmp     r9d, -1
     jne     .ret
     neg     rax
 .ret:
     ret
 
-; itoa signé
-; IN : rax = int64
-; OUT: rsi -> début chaîne, rcx = longueur
+.invalid:
+    xor     r11, r11             ; valid = 0
+    ; rax (valeur) est ignorée par l'appelant en cas d'invalidité
+    ret
 
+; ---------------- itoa signé ----------------
+; IN : rax = int64
+; OUT: rsi -> buffer, rcx = len
 itoa:
-    mov     r10, rax            ; conserver valeur originale
     mov     rbx, 10
     mov     rcx, 0
     mov     rdi, buf+31
     mov     byte [rdi], 0
 
-    ; si 0 -> écrire '0'
     test    rax, rax
     jnz     .check_neg
     dec     rdi
@@ -72,12 +87,11 @@ itoa:
     ret
 
 .check_neg:
-    mov     r8b, 0              ; flag négatif ?
+    mov     r8b, 0
     test    rax, rax
     jge     .conv
     neg     rax
     mov     r8b, 1
-
 .conv:
     xor     rdx, rdx
     div     rbx                 ; rax/=10, rdx=reste
@@ -87,56 +101,55 @@ itoa:
     inc     rcx
     test    rax, rax
     jnz     .conv
-
-    ; préfixer '-' si négatif
     cmp     r8b, 1
-    jne     .finish
+    jne     .done
     dec     rdi
     mov     byte [rdi], '-'
     inc     rcx
-
-.finish:
+.done:
     mov     rsi, rdi
     ret
 
-; main
-
+; ---------------- main ----------------
 _start:
     mov     rax, [rsp]          ; argc
-    cmp     rax, 3              ; besoin de 2 args
-    jl      exit1               ; -> exit 1 si pas assez d'args
+    cmp     rax, 3
+    jne     exit1               ; besoin EXACTEMENT 2 params
 
     ; argv[1]
     mov     rsi, [rsp+16]
     call    atoi
-    mov     r8, rax             ; sauver a
+    mov     r13, rax            ; a
+    test    r11, r11
+    jz      exit1               ; non numérique -> exit(1)
 
     ; argv[2]
     mov     rsi, [rsp+24]
     call    atoi
+    test    r11, r11
+    jz      exit1
 
-    add     rax, r8             ; a+b
+    add     rax, r13            ; a+b
 
-    ; convertir et écrire
-    call    itoa                ; rsi=buf, rcx=len
+    ; print
+    call    itoa                ; rsi, rcx
     mov     rax, 1              ; write(1, buf, len)
     mov     rdi, 1
     mov     rdx, rcx
     syscall
 
-    ; '\n'
-    mov     rax, 1
+    mov     rax, 1              ; newline
     mov     rdi, 1
     mov     rsi, nl
     mov     rdx, 1
     syscall
 
 exit0:
-    mov     rax, 60             ; exit(0)
+    mov     rax, 60
     xor     rdi, rdi
     syscall
 
 exit1:
-    mov     rax, 60             ; exit(1) si pas assez d'arguments
+    mov     rax, 60
     mov     rdi, 1
     syscall
