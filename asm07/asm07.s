@@ -1,6 +1,6 @@
 ﻿; asm07.s — Prime test from stdin
 ; exit 0 = prime
-; exit 1 = non-prime
+; exit 1 = non-prime (inclut nombres négatifs)
 ; exit 2 = bad input
 
 section .bss
@@ -19,13 +19,28 @@ _start:
     cmp     rax, 0
     jle     bad_input          ; rien lu -> invalide
 
-    ; parse unsigned integer (digits until '\n'/'\r')
     mov     rcx, rax           ; bytes lus
     mov     rsi, buf
-    xor     rbx, rbx           ; rbx = n
+    xor     rbx, rbx           ; rbx = n (magnitude)
     xor     r8,  r8            ; r8 = nb de chiffres vus
+    xor     r9,  r9            ; r9 = 1 si signe négatif
 
-.parse_loop:
+    ; ---- signe optionnel ----
+    mov     al, [rsi]
+    cmp     al, '-'
+    jne     .check_plus
+    mov     r9, 1              ; négatif
+    inc     rsi
+    dec     rcx
+    jmp     .parse
+.check_plus:
+    cmp     al, '+'
+    jne     .parse
+    inc     rsi
+    dec     rcx
+
+    ; ---- parse des chiffres jusqu'à \n/\r ----
+.parse:
     cmp     rcx, 0
     je      parsed
     mov     al, [rsi]
@@ -36,7 +51,7 @@ _start:
     je      parsed
 
     cmp     al, '0'
-    jb      bad_input          ; tout autre char ≠ digit/fin -> invalide
+    jb      bad_input
     cmp     al, '9'
     ja      bad_input
 
@@ -48,14 +63,18 @@ _start:
     movzx   rdx, al
     add     rbx, rdx
 
-    inc     r8                 ; on a vu au moins un chiffre
+    inc     r8                 ; au moins un chiffre
     inc     rsi
     dec     rcx
-    jmp     .parse_loop
+    jmp     .parse
 
 parsed:
     cmp     r8, 0
     je      bad_input          ; pas de chiffres -> invalide
+
+    ; négatif -> non premier (exit 1)
+    cmp     r9, 0
+    jne     not_prime
 
     ; n < 2 ? -> non premier
     cmp     rbx, 2
@@ -68,21 +87,20 @@ parsed:
     test    rbx, 1
     jz      not_prime
 
-    ; tester les diviseurs impairs i = 3,5,7,... tant que i <= n/i
-    mov     rdi, 3             ; i
+    ; tester i = 3,5,7,... tant que i <= n/i
+    mov     rdi, 3
 
 .loop:
     mov     rax, rbx
     xor     rdx, rdx
-    div     rdi                ; rax = q = n/i, rdx = r = n%i
+    div     rdi                ; rax = n/i, rdx = n%i
     test    rdx, rdx
-    jz      not_prime          ; divisible -> composite
+    jz      not_prime          ; divisible
 
-    ; si i > q  (i*i > n) -> premier
-    cmp     rdi, rax
+    cmp     rdi, rax           ; i > n/i ? -> i*i > n
     ja      is_prime
 
-    add     rdi, 2             ; i += 2
+    add     rdi, 2
     jmp     .loop
 
 is_prime:
